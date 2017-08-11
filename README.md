@@ -319,9 +319,7 @@ public void onCheckboxClicked(View view){
 
 * Al final nuestro código se vería algo así
 
-```
-package mx.paracrecer.paracrecer1;
-
+```java
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
