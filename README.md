@@ -316,3 +316,366 @@ public void onCheckboxClicked(View view){
         t.start();
     }
 ```
+
+* Al final nuestro código se vería algo así
+
+```
+package mx.paracrecer.paracrecer1;
+
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+public class MainActivity extends AppCompatActivity {
+
+    // UI
+    private ImageView imgLogo;
+    private ImageView imgPerfil;
+    private ImageView imgPass;
+    private EditText inputPerfil;
+    private EditText inputPass;
+    private Button boton;
+    private CheckBox check;
+    private ProgressDialog progress;
+
+    // System
+    private Boolean authorize = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // UI
+        loadView();
+
+        boton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v){
+                Log.d("onClick", "Click...");
+
+                userValidation();
+            }
+        });
+    }
+
+    private void userValidation(){
+
+        // Start progress UI
+        progress = new ProgressDialog(MainActivity.this);
+        progress.setIndeterminate(true);
+        progress.setMessage("Autenticando...");
+        progress.show();
+
+        final Thread t = new Thread() {
+            @Override
+            public void run() {
+
+                // Get value
+                String correo = inputPerfil.getText().toString();
+                String password = inputPass.getText().toString();
+
+                // Login
+                loginSinAsync(correo, password);
+
+                // Stop progress
+                progress.dismiss();
+
+                // Change Activity
+                if(authorize){
+
+                    if(check.isChecked()){
+
+                        SharedPreferences.Editor prefEditor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
+                        prefEditor.putString("key_correo", correo);
+                        prefEditor.putString("key_password", password);
+                        prefEditor.putString("key_check", "active");
+                        prefEditor.apply();
+                    }
+
+                    try{
+
+                        //Intent intent = new Intent(MainActivity.this, Ubicacion.class);
+                        Intent intent = new Intent(MainActivity.this, MapsActivity.class);
+                        intent.putExtra("miCorreo", correo);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        finish();
+
+                    }catch(Exception e){
+                        Log.d("what",e.getMessage());
+                    }
+                } else {
+
+                    // Si no se pudo hacer login
+                    // Corremos el Toast en el hilo principal
+
+                    runOnUiThread(new Runnable() {
+                        public void run()
+                        {
+                            Toast.makeText(
+                                    getBaseContext(),
+                                    "Usuario O Contraseña Incorrectos",
+                                    Toast.LENGTH_LONG).
+                                    show();
+                        }
+                    });
+                }
+            }
+        };
+        t.start();
+    }
+
+    private void login(){
+
+        AsyncTask.execute(new Runnable() {
+
+            @Override
+            public void run() {
+
+                String stringUrl = "http://107.170.206.68:41062/www/pc/gps/login.php";
+
+                try {
+
+                    //URL
+                    URL url = new URL(stringUrl);
+                    //Connection
+                    HttpURLConnection myConnection = (HttpURLConnection) url.openConnection();
+                    // Method
+                    myConnection.setRequestMethod("POST");
+                    // Headers
+                    myConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                    myConnection.setRequestProperty("charset", "utf-8");
+
+                    // Create the data
+                    String myData = "correo=ginppian@gmail.com&password=1234";
+
+                    // Enable writing
+                    myConnection.setDoOutput(true);
+                    myConnection.setInstanceFollowRedirects(false);
+
+                    // Write the data
+                    myConnection.getOutputStream().write(myData.getBytes(StandardCharsets.UTF_8));
+
+                    // Recive
+                    BufferedReader streamReader = new BufferedReader(new InputStreamReader(myConnection.getInputStream(), "UTF-8"));
+                    StringBuilder responseStrBuilder = new StringBuilder();
+
+                    // Deserialize
+                    String inputStr;
+                    while ((inputStr = streamReader.readLine()) != null)
+                        responseStrBuilder.append(inputStr);
+                    Log.d("json..: ", responseStrBuilder.toString());
+                    JSONObject json = new JSONObject(responseStrBuilder.toString());
+
+                    // Get Json'data In String
+                    String sera = recurseKeys(json, "success");
+
+
+                } catch (IOException e) {
+                    Log.d("what",e.getMessage());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void loginSinAsync(String correo, String password){
+
+        String stringUrl = "http://107.170.206.68:41062/www/pc/gps/login.php";
+
+        try {
+
+            //URL
+            URL url = new URL(stringUrl);
+            //Connection
+            HttpURLConnection myConnection = (HttpURLConnection) url.openConnection();
+            // Method
+            myConnection.setRequestMethod("POST");
+            // Headers
+            myConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            myConnection.setRequestProperty("charset", "utf-8");
+
+            // Create the data
+            //String myData = "correo=ginppian@gmail.com&password=1234";
+            String myData = "correo="+correo+"&"+"password="+password;
+
+            // Enable writing
+            myConnection.setDoOutput(true);
+            myConnection.setInstanceFollowRedirects(false);
+
+            // Write the data
+            myConnection.getOutputStream().write(myData.getBytes(StandardCharsets.UTF_8));
+
+            // Recive
+            BufferedReader streamReader = new BufferedReader(new InputStreamReader(myConnection.getInputStream(), "UTF-8"));
+            StringBuilder responseStrBuilder = new StringBuilder();
+
+            // Deserialize
+            String inputStr;
+            while ((inputStr = streamReader.readLine()) != null)
+                responseStrBuilder.append(inputStr);
+            Log.d("json..: ", responseStrBuilder.toString());
+            JSONObject json = new JSONObject(responseStrBuilder.toString());
+
+            // Get Json'data In String
+            String jsonAuthorized = recurseKeys(json, "success");
+
+            if(jsonAuthorized == "true"){
+                authorize = true;
+            } else {
+                authorize = false;
+            }
+
+        } catch (IOException e) {
+            Log.d("what",e.getMessage());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static String recurseKeys(JSONObject jObj, String findKey) throws JSONException {
+        String finalValue = "";
+        if (jObj == null) {
+            return "";
+        }
+
+        Iterator<String> keyItr = jObj.keys();
+        Map<String, String> map = new HashMap<>();
+
+        while(keyItr.hasNext()) {
+            String key = keyItr.next();
+            map.put(key, jObj.getString(key));
+        }
+
+        for (Map.Entry<String, String> e : (map).entrySet()) {
+            String key = e.getKey();
+            if (key.equalsIgnoreCase(findKey)) {
+                return jObj.getString(key);
+            }
+
+            // read value
+            Object value = jObj.get(key);
+
+            if (value instanceof JSONObject) {
+                finalValue = recurseKeys((JSONObject)value, findKey);
+            }
+        }
+
+        // key is not found
+        return finalValue;
+    }
+
+    private void loadView(){
+
+        imgLogo = (ImageView) findViewById(R.id.imageView);
+        imgPerfil = (ImageView) findViewById(R.id.imageView2);
+        imgPass = (ImageView) findViewById(R.id.imageView3);
+        inputPerfil = (EditText) findViewById(R.id.editText);
+        inputPass = (EditText) findViewById(R.id.editText2);
+        boton = (Button) findViewById(R.id.button);
+        check = (CheckBox) findViewById(R.id.checkbox1);
+
+        load_RememberData();
+    }
+
+    public void onCheckboxClicked(View view){
+
+        // Is the view now checked?
+        boolean checked = ((CheckBox) view).isChecked();
+
+        if (checked){
+            /*
+            // Get value
+            String correo = inputPerfil.getText().toString();
+            String password = inputPass.getText().toString();
+
+            SharedPreferences.Editor prefEditor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
+            prefEditor.putString("key_correo", correo);
+            prefEditor.putString("key_password", password);
+            prefEditor.putString("key_check", "active");
+            prefEditor.apply();
+            */
+        }else{
+
+            SharedPreferences.Editor prefEditor = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit();
+            prefEditor.putString("key_correo", "");
+            prefEditor.putString("key_password", "");
+            prefEditor.putString("key_check", "");
+            prefEditor.apply();
+
+        }
+    }
+
+    private void load_RememberData(){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        String _check = prefs.getString("key_check", "defaultStringIfNothingFound");
+        String _correo = prefs.getString("key_correo", "defaultStringIfNothingFound");
+        String _password = prefs.getString("key_password", "defaultStringIfNothingFound");
+
+        if(_check.equals("active")){
+
+            inputPerfil.setText(_correo);
+            inputPass.setText(_password);
+            check.setChecked(true);
+        } else {
+            inputPerfil.setText("");
+            inputPass.setText("");
+            check.setChecked(false);
+        }
+    }
+}
+
+```
+
+### Nota
+
+<p align="justify">
+	Tuve problemas al comparar cadenas ya que Java compara objetos y yo estaba comparando Objeto == "cadenaTexto" lo cual daba falso, si comparas "cadenaTexto" == "cadenaTexto" Java lo toma como Objecto == Objecto. Para resolverlo tuve que usar la Objecto.isEqual("cadenaTexto");
+</p>
+
+<p align="justify">
+	Si el servicio que se está consumiendo en Background regresa incorrecto hay que mejecutar un mensaje en mi caso uso un Toast pero los elementos gráficos se ejecutan en el hilo principal y estamos en el hilo de Background entonces tenemos que indicar que regresamos al hilo princial.
+</p>
+
+## Fuente
+
+* <a href="https://developer.android.com/guide/topics/ui/controls/checkbox.html">Checkboxes Oficial</a>
+
+* <a href="https://developer.android.com/training/basics/data-storage/shared-preferences.html?hl=es-419">https://developer.android.com/training/basics/data-storage/shared-preferences.html?hl=es-419</a>
+
+* <a href="https://stackoverflow.com/questions/12074156/android-storing-retrieving-strings-with-shared-preferences">Android - Storing/retrieving strings with shared preferences</a>
+
+* <a href="https://stackoverflow.com/questions/513832/how-do-i-compare-strings-in-java">How do I compare strings in Java?</a>
+
+* <a href="https://stackoverflow.com/questions/8061314/toggle-checkbox-programmatically">Toggle checkbox programmatically</a>
+
+* <a href="https://stackoverflow.com/questions/13790351/how-to-show-toast-in-asynctask-in-doinbackground">How to show toast in AsyncTask in doInBackground</a>
