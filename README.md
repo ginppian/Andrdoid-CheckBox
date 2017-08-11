@@ -670,7 +670,7 @@ public class MainActivity extends AppCompatActivity {
 
 * <a href="https://developer.android.com/guide/topics/ui/controls/checkbox.html">Checkboxes Oficial</a>
 
-* <a href="https://developer.android.com/training/basics/data-storage/shared-preferences.html?hl=es-419">https://developer.android.com/training/basics/data-storage/shared-preferences.html?hl=es-419</a>
+* <a href="https://developer.android.com/training/basics/data-storage/shared-preferences.html?hl=es-419">Cómo guardar conjuntos clave-valor</a>
 
 * <a href="https://stackoverflow.com/questions/12074156/android-storing-retrieving-strings-with-shared-preferences">Android - Storing/retrieving strings with shared preferences</a>
 
